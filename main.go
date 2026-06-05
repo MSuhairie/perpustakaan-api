@@ -47,7 +47,11 @@ func main() {
     anggotaUsecase := usecase.NewAnggotaUsecase(anggotaRepo)
     anggotaHandler := handler.NewAnggotaHandler(anggotaUsecase)
 
-    r := gin.Default()
+    r := gin.New()
+
+    r.Use(middleware.LoggerMiddleware()) // ← Logger
+    r.Use(gin.Recovery())                // ← Recovery (tangkap panic)
+    r.Use(middleware.CorsMiddleware())   // ← CORS
 
     // Static files — akses foto lewat URL
     r.Static("/uploads", "./uploads")

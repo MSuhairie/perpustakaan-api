@@ -1,16 +1,17 @@
 package handler
 
 import (
-    "fmt"
-    "net/http"
-    "os"
-    "path/filepath"
-    "perpustakaan-api/model"
-    "perpustakaan-api/usecase"
-    "strings"
-    "time"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"perpustakaan-api/helper"
+	"perpustakaan-api/model"
+	"perpustakaan-api/usecase"
+	"strings"
+	"time"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type BukuHandler struct {
@@ -24,65 +25,68 @@ func NewBukuHandler(uc usecase.BukuUsecase) *BukuHandler {
 func (h *BukuHandler) GetAllBuku(c *gin.Context) {
     bukuList, err := h.usecase.GetAllBuku()
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseInternalError(c, err.Error())
         return
     }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": bukuList})
+    helper.ResponseOK(c, "Data buku berhasil diambil", bukuList)
 }
 
 func (h *BukuHandler) GetBukuByID(c *gin.Context) {
     buku, err := h.usecase.GetBukuByID(c.Param("id"))
     if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Buku tidak ditemukan")
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": buku})
+    helper.ResponseOK(c, "Data buku berhasil diambil", buku)
 }
 
 func (h *BukuHandler) SearchBuku(c *gin.Context) {
     bukuList, err := h.usecase.SearchBuku(c.Query("judul"))
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": bukuList})
+    helper.ResponseOK(c, "Data buku berhasil diambil", bukuList)
 }
 
 func (h *BukuHandler) CreateBuku(c *gin.Context) {
     var buku model.Buku
     if err := c.ShouldBindJSON(&buku); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseValidationError(c, helper.PesanError(err))
         return
     }
     result, err := h.usecase.CreateBuku(buku)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+    helper.ResponseCreated(c, "Buku berhasil ditambahkan", result)
 }
 
 func (h *BukuHandler) UpdateBuku(c *gin.Context) {
     var input model.Buku
     if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseValidationError(c, helper.PesanError(err))
         return
     }
     result, err := h.usecase.UpdateBuku(c.Param("id"), input)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Buku berhasil diupdate", result)
 }
 
 func (h *BukuHandler) DeleteBuku(c *gin.Context) {
+    buku, _ := h.usecase.GetBukuByID(c.Param("id"))
+    if buku.Foto != "" {
+        os.Remove("uploads/" + buku.Foto)
+    }
     if err := h.usecase.DeleteBuku(c.Param("id")); err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Buku tidak ditemukan")
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "message": "Buku berhasil dihapus"})
+    helper.ResponseOK(c, "Buku berhasil dihapus", nil)
 }
 
 func (h *BukuHandler) UploadFoto(c *gin.Context) {
