@@ -1,11 +1,12 @@
 package handler
 
 import (
-    "net/http"
-    "perpustakaan-api/model"
-    "perpustakaan-api/usecase"
+	"perpustakaan-api/dto"
+	"perpustakaan-api/helper"
+	"perpustakaan-api/model"
+	"perpustakaan-api/usecase"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type RakResponse struct {
@@ -25,89 +26,75 @@ func NewRakHandler(uc usecase.RakUsecase) *RakHandler {
 func (h *RakHandler) GetAllRak(c *gin.Context) {
     rakList, err := h.usecase.GetAllRak()
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseInternalError(c, err.Error())
         return
     }
-
-    var result []RakResponse
-    for _, k := range rakList {
-        result = append(result, RakResponse{
-            ID:  k.ID,
-            KodeRak:  k.KodeRak,
-            Lokasi:  k.Lokasi,
-        })
-    }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Rak berhasil diambil", helper.ToRakResponseList(rakList))
 }
 
 func (h *RakHandler) GetRakByID(c *gin.Context) {
     rak, err := h.usecase.GetRakByID(c.Param("id"))
     if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Rak tidak ditemukan")
         return
     }
-
-    result := RakResponse{
-        ID:           rak.ID,
-        KodeRak: rak.KodeRak,
-        Lokasi: rak.Lokasi,
-    }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Rak berhasil diambil", helper.ToRakResponse(rak))
 }
 
 func (h *RakHandler) SearchRak(c *gin.Context) {
     rakList, err := h.usecase.SearchRak(c.Query("nama_rak"))
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-
-    var result []RakResponse
-    for _, k := range rakList {
-        result = append(result, RakResponse{
-            ID:  k.ID,
-            KodeRak:  k.KodeRak,
-            Lokasi:  k.Lokasi,
-        })
-    }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Rak berhasil diambil", helper.ToRakResponseList(rakList))
 }
 
 func (h *RakHandler) CreateRak(c *gin.Context) {
-    var rak model.Rak
-    if err := c.ShouldBindJSON(&rak); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+    var req dto.RakRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseValidationError(c, helper.PesanError(err))
         return
     }
+
+    rak := model.Rak{
+        KodeRak: req.KodeRak,
+        Lokasi: req.Lokasi,
+    }
+
     result, err := h.usecase.CreateRak(rak)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+	helper.ResponseCreated(c, "Rak berhasil ditambahkan", helper.ToRakResponse(result))
 }
 
 func (h *RakHandler) UpdateRak(c *gin.Context) {
-    var input model.Rak
-    if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+    var req dto.RakRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseValidationError(c, helper.PesanError(err))
         return
     }
+
+    input := model.Rak{
+        KodeRak: req.KodeRak,
+        Lokasi: req.Lokasi,
+    }
+
     result, err := h.usecase.UpdateRak(c.Param("id"), input)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Rak berhasil diupdate", helper.ToRakResponse(result))
+
 }
 
 func (h *RakHandler) DeleteRak(c *gin.Context) {
     if err := h.usecase.DeleteRak(c.Param("id")); err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Rak tidak ditemukan")
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "message": "Rak berhasil dihapus"})
+    helper.ResponseOK(c, "Rak berhasil dihapus", nil)
 }

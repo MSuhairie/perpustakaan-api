@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"perpustakaan-api/dto"
 	"perpustakaan-api/helper"
 	"perpustakaan-api/model"
 	"perpustakaan-api/usecase"
@@ -28,7 +29,7 @@ func (h *BukuHandler) GetAllBuku(c *gin.Context) {
         helper.ResponseInternalError(c, err.Error())
         return
     }
-    helper.ResponseOK(c, "Data buku berhasil diambil", bukuList)
+    helper.ResponseOK(c, "Data buku berhasil diambil", helper.ToBukuResponseList(bukuList))
 }
 
 func (h *BukuHandler) GetBukuByID(c *gin.Context) {
@@ -37,7 +38,7 @@ func (h *BukuHandler) GetBukuByID(c *gin.Context) {
         helper.ResponseNotFound(c, "Buku tidak ditemukan")
         return
     }
-    helper.ResponseOK(c, "Data buku berhasil diambil", buku)
+    helper.ResponseOK(c, "Data buku berhasil diambil", helper.ToBukuResponse(buku))
 }
 
 func (h *BukuHandler) SearchBuku(c *gin.Context) {
@@ -46,35 +47,61 @@ func (h *BukuHandler) SearchBuku(c *gin.Context) {
         helper.ResponseBadRequest(c, err.Error())
         return
     }
-    helper.ResponseOK(c, "Data buku berhasil diambil", bukuList)
+    helper.ResponseOK(c, "Data buku berhasil diambil", helper.ToBukuResponseList(bukuList))
 }
 
 func (h *BukuHandler) CreateBuku(c *gin.Context) {
-    var buku model.Buku
-    if err := c.ShouldBindJSON(&buku); err != nil {
-        helper.ResponseValidationError(c, helper.PesanError(err))
-        return
-    }
-    result, err := h.usecase.CreateBuku(buku)
-    if err != nil {
-        helper.ResponseBadRequest(c, err.Error())
-        return
-    }
-    helper.ResponseCreated(c, "Buku berhasil ditambahkan", result)
+	var req dto.BukuRequest  // ← pakai DTO request
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseValidationError(c, helper.PesanError(err))
+		return
+	}
+
+	// Konversi DTO ke model
+	buku := model.Buku{
+		KategoriID:  req.KategoriID,
+		RakID:       req.RakID,
+		Judul:       req.Judul,
+		Penulis:     req.Penulis,
+		Penerbit:    req.Penerbit,
+		TahunTerbit: req.TahunTerbit,
+		ISBN:        req.ISBN,
+		Stok:        req.Stok,
+	}
+
+	result, err := h.usecase.CreateBuku(buku)
+	if err != nil {
+		helper.ResponseBadRequest(c, err.Error())
+		return
+	}
+	helper.ResponseCreated(c, "Buku berhasil ditambahkan", helper.ToBukuResponse(result))
 }
 
 func (h *BukuHandler) UpdateBuku(c *gin.Context) {
-    var input model.Buku
-    if err := c.ShouldBindJSON(&input); err != nil {
+    var req dto.BukuRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
         helper.ResponseValidationError(c, helper.PesanError(err))
         return
     }
+
+    // Konversi DTO ke model
+	input := model.Buku{
+		KategoriID:  req.KategoriID,
+		RakID:       req.RakID,
+		Judul:       req.Judul,
+		Penulis:     req.Penulis,
+		Penerbit:    req.Penerbit,
+		TahunTerbit: req.TahunTerbit,
+		ISBN:        req.ISBN,
+		Stok:        req.Stok,
+	}
+
     result, err := h.usecase.UpdateBuku(c.Param("id"), input)
     if err != nil {
         helper.ResponseBadRequest(c, err.Error())
         return
     }
-    helper.ResponseOK(c, "Buku berhasil diupdate", result)
+    helper.ResponseOK(c, "Buku berhasil diupdate", helper.ToBukuResponse(result))
 }
 
 func (h *BukuHandler) DeleteBuku(c *gin.Context) {

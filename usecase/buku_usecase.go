@@ -60,7 +60,11 @@ func (u *bukuUsecase) UpdateBuku(id string, input model.Buku) (model.Buku, error
     if err != nil {
         return buku, errors.New("buku tidak ditemukan")
     }
-    return u.repo.Update(buku, input)
+     _, err = u.repo.Update(buku, input)
+    if err != nil {
+        return buku, err
+    }
+    return u.repo.FindByID(id)
 }
 
 func (u *bukuUsecase) DeleteBuku(id string) error {

@@ -54,7 +54,11 @@ func (u *kategoriUsecase) UpdateKategori(id string, input model.Kategori) (model
     if err != nil {
         return kategori, errors.New("kategori tidak ditemukan")
     }
-    return u.repo.Update(kategori, input)
+    _, err = u.repo.Update(kategori, input)
+    if err != nil {
+        return kategori, err
+    }
+    return u.repo.FindByID(id)
 }
 
 func (u *kategoriUsecase) DeleteKategori(id string) error {

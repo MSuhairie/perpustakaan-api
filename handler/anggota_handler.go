@@ -1,11 +1,12 @@
 package handler
 
 import (
-    "net/http"
-    "perpustakaan-api/model"
-    "perpustakaan-api/usecase"
+	"perpustakaan-api/dto"
+	"perpustakaan-api/helper"
+	"perpustakaan-api/model"
+	"perpustakaan-api/usecase"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type AnggotaHandler struct {
@@ -19,62 +20,76 @@ func NewAnggotaHandler(uc usecase.AnggotaUsecase) *AnggotaHandler {
 func (h *AnggotaHandler) GetAllAnggota(c *gin.Context) {
     anggotaList, err := h.usecase.GetAllAnggota()
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseInternalError(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": anggotaList})
+    helper.ResponseOK(c, "Data anggota berhasil diambil", helper.ToAnggotaResponseList(anggotaList))
 }
 
 func (h *AnggotaHandler) GetAnggotaByID(c *gin.Context) {
     anggota, err := h.usecase.GetAnggotaByID(c.Param("id"))
     if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Buku tidak ditemukan")
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": anggota})
+    helper.ResponseOK(c, "Data anggota berhasil diambil", helper.ToAnggotaResponse(anggota))
 }
 
 func (h *AnggotaHandler) SearchAnggota(c *gin.Context) {
     anggotaList, err := h.usecase.SearchAnggota(c.Query("nama_anggota"))
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": anggotaList})
+    helper.ResponseOK(c, "Data anggota berhasil diambil", helper.ToAnggotaResponseList(anggotaList))
 }
 
 func (h *AnggotaHandler) CreateAnggota(c *gin.Context) {
-    var anggota model.Anggota
-    if err := c.ShouldBindJSON(&anggota); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+    var req dto.AnggotaRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseValidationError(c, helper.PesanError(err))
         return
+    }
+    anggota := model.Anggota{
+        Nama: req.Nama,
+        Alamat: req.Alamat,
+        NoHP: req.NoHP,
+        TglDaftar: req.TglDaftar,
+        Status: req.Status,
     }
     result, err := h.usecase.CreateAnggota(anggota)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+    helper.ResponseCreated(c, "Anggota berhasil ditambahkan", helper.ToAnggotaResponse(result))
 }
 
 func (h *AnggotaHandler) UpdateAnggota(c *gin.Context) {
-    var input model.Anggota
-    if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+    var req dto.AnggotaRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseValidationError(c, helper.PesanError(err))
         return
+    }
+    input := model.Anggota{
+        Nama: req.Nama,
+        Alamat: req.Alamat,
+        NoHP: req.NoHP,
+        TglDaftar: req.TglDaftar,
+        Status: req.Status,
     }
     result, err := h.usecase.UpdateAnggota(c.Param("id"), input)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Anggota berhasil diupdate", helper.ToAnggotaResponse(result))
 }
 
 func (h *AnggotaHandler) DeleteAnggota(c *gin.Context) {
     if err := h.usecase.DeleteAnggota(c.Param("id")); err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Anggota tidak ditemukan")
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "message": "Anggota berhasil dihapus"})
+    helper.ResponseOK(c, "Anggota berhasil dihapus", nil)
 }

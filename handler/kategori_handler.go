@@ -1,17 +1,13 @@
 package handler
 
 import (
-    "net/http"
-    "perpustakaan-api/model"
-    "perpustakaan-api/usecase"
+	"perpustakaan-api/dto"
+	"perpustakaan-api/helper"
+	"perpustakaan-api/model"
+	"perpustakaan-api/usecase"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
-
-type KategoriResponse struct {
-    ID uint `json:"id"`
-    NamaKategori  string  `json:"nama_kategori"`
-}
 
 type KategoriHandler struct {
     usecase usecase.KategoriUsecase
@@ -24,86 +20,69 @@ func NewKategoriHandler(uc usecase.KategoriUsecase) *KategoriHandler {
 func (h *KategoriHandler) GetAllKategori(c *gin.Context) {
     kategoriList, err := h.usecase.GetAllKategori()
     if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseInternalError(c, err.Error())
         return
     }
-
-    var result []KategoriResponse
-    for _, k := range kategoriList {
-        result = append(result, KategoriResponse{
-            ID:  k.ID,
-            NamaKategori:  k.NamaKategori,
-        })
-    }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Kategori berhasil diambil", helper.ToKategoriResponseList(kategoriList))
 }
 
 func (h *KategoriHandler) GetKategoriByID(c *gin.Context) {
     kategori, err := h.usecase.GetKategoriByID(c.Param("id"))
     if err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Kategori tidak ditemukan")
         return
     }
-
-    result := KategoriResponse{
-        ID:           kategori.ID,
-        NamaKategori: kategori.NamaKategori,
-    }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Kategori berhasil diambil", helper.ToKategoriResponse(kategori))
 }
 
 func (h *KategoriHandler) SearchKategori(c *gin.Context) {
     kategoriList, err := h.usecase.SearchKategori(c.Query("nama_kategori"))
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseBadRequest(c, err.Error())
         return
     }
-
-    var result []KategoriResponse
-    for _, k := range kategoriList {
-        result = append(result, KategoriResponse{
-            ID:  k.ID,
-            NamaKategori:  k.NamaKategori,
-        })
-    }
-
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Kategori berhasil diambil", helper.ToKategoriResponseList(kategoriList))
 }
 
 func (h *KategoriHandler) CreateKategori(c *gin.Context) {
-    var kategori model.Kategori
-    if err := c.ShouldBindJSON(&kategori); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+    var req dto.KategoriRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseValidationError(c, helper.PesanError(err))
         return
+    }
+    kategori := model.Kategori{
+        NamaKategori: req.NamaKategori,
     }
     result, err := h.usecase.CreateKategori(kategori)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusCreated, gin.H{"success": true, "data": result})
+	helper.ResponseCreated(c, "Kategori berhasil ditambahkan", helper.ToKategoriResponse(result))
 }
 
 func (h *KategoriHandler) UpdateKategori(c *gin.Context) {
-    var input model.Kategori
-    if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+    var req dto.KategoriRequest
+    if err := c.ShouldBindJSON(&req); err != nil {
+        helper.ResponseValidationError(c, helper.PesanError(err))
         return
+    }
+    input := model.Kategori{
+        NamaKategori: req.NamaKategori,
     }
     result, err := h.usecase.UpdateKategori(c.Param("id"), input)
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		helper.ResponseBadRequest(c, err.Error())
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "data": result})
+    helper.ResponseOK(c, "Data Kategori berhasil diupdate", helper.ToKategoriResponse(result))
 }
 
 func (h *KategoriHandler) DeleteKategori(c *gin.Context) {
     if err := h.usecase.DeleteKategori(c.Param("id")); err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseNotFound(c, "Kategori tidak ditemukan")
         return
     }
-    c.JSON(http.StatusOK, gin.H{"success": true, "message": "Kategori berhasil dihapus"})
+    helper.ResponseOK(c, "Kategori berhasil dihapus", nil)
+
 }

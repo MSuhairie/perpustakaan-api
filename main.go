@@ -47,6 +47,15 @@ func main() {
     anggotaUsecase := usecase.NewAnggotaUsecase(anggotaRepo)
     anggotaHandler := handler.NewAnggotaHandler(anggotaUsecase)
 
+    peminjamanRepo    := repository.NewPeminjamanRepository(database.DB)
+    peminjamanUsecase := usecase.NewPeminjamanUsecase(peminjamanRepo, bukuRepo)
+    peminjamanHandler := handler.NewPeminjamanHandler(peminjamanUsecase)
+
+    dendaRepo           := repository.NewDendaRepository(database.DB)
+    pengembalianRepo    := repository.NewPengembalianRepository(database.DB)
+    pengembalianUsecase := usecase.NewPengembalianUsecase(pengembalianRepo, peminjamanRepo, bukuRepo, dendaRepo)
+    pengembalianHandler := handler.NewPengembalianHandler(pengembalianUsecase)
+
     r := gin.New()
 
     r.Use(middleware.LoggerMiddleware()) // ← Logger
@@ -108,6 +117,23 @@ func main() {
             anggota.PUT("/:id", anggotaHandler.UpdateAnggota)
             anggota.DELETE("/:id", anggotaHandler.DeleteAnggota)
         }
+
+        peminjaman := auth.Group("/peminjaman")
+        {
+            peminjaman.GET("", peminjamanHandler.GetAll)
+            peminjaman.GET("/:id", peminjamanHandler.GetByID)
+            peminjaman.POST("", peminjamanHandler.Create)
+            peminjaman.PUT("/:id/status", peminjamanHandler.UpdateStatus)
+            peminjaman.DELETE("/:id", peminjamanHandler.Delete)
+        }
+
+        pengembalian := auth.Group("/pengembalian")
+        {
+            pengembalian.GET("", pengembalianHandler.GetAll)
+            pengembalian.GET("/:id", pengembalianHandler.GetByID)
+            pengembalian.POST("", pengembalianHandler.Create)
+        }
+
     }
 
     port := os.Getenv("APP_PORT")

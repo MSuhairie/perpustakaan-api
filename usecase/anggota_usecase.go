@@ -66,7 +66,11 @@ func (u *anggotaUsecase) UpdateAnggota(id string, input model.Anggota) (model.An
     if err != nil {
         return anggota, errors.New("anggota tidak ditemukan")
     }
-    return u.repo.Update(anggota, input)
+    _, err = u.repo.Update(anggota, input)
+    if err != nil {
+        return anggota, err
+    }
+    return u.repo.FindByID(id)
 }
 
 func (u *anggotaUsecase) DeleteAnggota(id string) error {
