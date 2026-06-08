@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"perpustakaan-api/database"
+	"perpustakaan-api/helper"
 	"perpustakaan-api/middleware"
 	"perpustakaan-api/model"
 	"time"
@@ -27,14 +28,14 @@ type LoginInput struct {
 func Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+        helper.ResponseValidationError(c, helper.PesanError(err))
 		return
 	}
 
 	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal proses password"})
+        helper.ResponseInternalError(c, "Gagal proses password")
 		return
 	}
 
@@ -46,30 +47,30 @@ func Register(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&petugas).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Username sudah digunakan"})
+		helper.ResponseBadRequest(c, "Username sudah digunakan")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "Registrasi berhasil"})
+	helper.ResponseCreated(c, "Registrasi berhasil", nil)
 }
 
 func Login(c *gin.Context) {
 	var input LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		helper.ResponseBadRequest(c, err.Error())
 		return
 	}
 
 	// Cari petugas by username
 	var petugas model.Petugas
 	if err := database.DB.Where("username = ?", input.Username).First(&petugas).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Username atau password salah"})
+		helper.ResponseUnauthorized(c, "Username atau password salah")
 		return
 	}
 
 	// Cek password
 	if err := bcrypt.CompareHashAndPassword([]byte(petugas.Password), []byte(input.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Username atau password salah"})
+		helper.ResponseUnauthorized(c, "Username atau password salah")
 		return
 	}
 
@@ -82,7 +83,7 @@ func Login(c *gin.Context) {
 
 	tokenString, err := token.SignedString(middleware.GetSecretKey())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal buat token"})
+		helper.ResponseInternalError(c, "Gagal buat token")		
 		return
 	}
 
